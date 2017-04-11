@@ -6,6 +6,7 @@ struct neuron {
     float m_delta;
     int m_nInputs;
     float m_weightedSum;
+    float m_output;
 
     neuron();
 
@@ -49,9 +50,11 @@ public:
 
     void backPropagate(float *t_outputs, float *t_desiredOutputs);
 
-    void updateWeight();
+    float updateWeight(float weight, float error, float input);
 
     float train(float *t_inputs, float *t_desiredOutputs);
+
+
 
 private:
     layer *m_inputLayer;

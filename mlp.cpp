@@ -3,7 +3,7 @@
 #include <ctime>
 #include "mlp.h"
 
-neuron::neuron() : m_weights(0), m_delta(0), m_weightedSum(0) {
+neuron::neuron() : m_weights(0), m_delta(0), m_weightedSum(0), m_output(0.f) {
 
 }
 
@@ -69,6 +69,7 @@ float *layer::compute(float *t_layerInputs) {
         for (int i = 0; i < m_nNeurons; ++i) {
             res[i] = m_neurons[i]->compute(t_layerInputs);
             res[i] = activate(res[i]);
+            m_neurons[i]->m_output = res[i];
         }
     } else {
         float *inputsWithBias = new float[m_nInputs + 1];
@@ -81,6 +82,7 @@ float *layer::compute(float *t_layerInputs) {
         for (int i = 0; i < m_nNeurons; ++i) {
             res[i] = m_neurons[i]->compute(inputsWithBias);
             res[i] = activate(res[i]);
+            m_neurons[i]->m_output = res[i];
         }
     }
 
@@ -120,43 +122,57 @@ float *mlp::feedForward(float *t_inputs) {
     return m_outputLayer->compute(res);
 }
 
-void mlp::backPropagate(float *t_outputs, float* t_desiredOutputs) {
+void mlp::backPropagate(float *t_outputs, float *t_desiredOutputs) {
     //float squaredOutputNeuronErrors = 0.f;
     float outputError[m_outputLayer->m_nNeurons];
     int i = 0;
     for (i = 0; i < m_outputLayer->m_nNeurons; ++i) {
-        m_outputLayer->m_errors[i] = m_outputLayer->d_activate(m_outputLayer->m_neurons[i]->m_weightedSum) * (t_desiredOutputs[i] - t_outputs[i]);
+        m_outputLayer->m_errors[i] = m_outputLayer->d_activate(m_outputLayer->m_neurons[i]->m_weightedSum) *
+                                     (t_desiredOutputs[i] - t_outputs[i]);
         //squaredOutputNeuronErrors += (t_desiredOutputs[i] - t_outputs[i]) * (t_desiredOutputs[i] - t_outputs[i]);
     }
     //float outputLayerError = 0.5 * squaredOutputNeuronErrors;
 
     for (i = m_nHiddenLayers - 1; i >= 0; --i) {
         for (int j = 0; j < m_hiddenLayers[i]->m_nNeurons; ++j) {
-            m_hiddenLayers[i]->m_errors[j] = m_hiddenLayers[i]->d_activate(m_hiddenLayers[i]->m_neurons[j]->m_weightedSum);
+            m_hiddenLayers[i]->m_errors[j] = m_hiddenLayers[i]->d_activate(
+                    m_hiddenLayers[i]->m_neurons[j]->m_weightedSum);
             float localSum = 0.f;
             if (i == m_nHiddenLayers - 1) {
                 for (int k = 0; k < m_outputLayer->m_nNeurons; ++k) {
-                    for (int l = 0; l < m_outputLayer->m_neurons[k]->m_nInputs ; ++l) {
+                    for (int l = 0; l < m_outputLayer->m_neurons[k]->m_nInputs; ++l) {
                         localSum += m_outputLayer->m_neurons[k]->m_weights[l] * m_outputLayer->m_errors[k];
                     }
                 }
             } else {
                 for (int k = 0; k < m_hiddenLayers[i + 1]->m_nNeurons; ++k) {
-                    for (int l = 0; l < m_hiddenLayers[i + 1]->m_neurons[k]->m_nInputs ; ++l) {
-                        localSum += m_hiddenLayers[i + 1]->m_neurons[k]->m_weights[l] * m_hiddenLayers[i + 1]->m_errors[k];
+                    for (int l = 0; l < m_hiddenLayers[i + 1]->m_neurons[k]->m_nInputs; ++l) {
+                        localSum +=
+                                m_hiddenLayers[i + 1]->m_neurons[k]->m_weights[l] * m_hiddenLayers[i + 1]->m_errors[k];
                     }
                 }
             }
             m_hiddenLayers[i]->m_errors[j] *= localSum;
         }
     }
-
 }
 
-void mlp::updateWeight() {
-
+float mlp::updateWeight(float weight, float error, float input) {
+    return weight + m_learningRate * error * input;
 }
 
 float mlp::train(float *t_inputs, float *t_desiredOutputs) {
+    float * outputs = feedForward(t_inputs);
+    //std::cout << outputs[0] << std::endl;
+    backPropagate(outputs, t_desiredOutputs);
+
+    for (int i = 0; i < m_nHiddenLayers; ++i) {
+        for (int j = 0; j < m_hiddenLayers[i]->m_nNeurons; ++j) {
+            for (int k = 0; k < m_hiddenLayers[i]->m_neurons[j]->m_nInputs; ++k) {
+                m_hiddenLayers[i]->m_neurons[j]->m_weights[k] = updateWeight(m_hiddenLayers[i]->m_neurons[j]->m_weights[k], m_hiddenLayers[i]->m_errors[j], i == 0 ? t_inputs[k] :  m_hiddenLayers[i - 1]->m_neurons[k]->m_output);
+            }
+        }
+    }
+
     return 0;
 }
