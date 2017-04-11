@@ -7,7 +7,7 @@ int main() {
     float momentum = 0.1;
     int nLayers = 3;
     int const epochs = 20000;
-    int modelStruct[3] = {2, 3, 1};
+    int modelStruct[3] = {2, 4, 1};
     mlp neuralNet;
     neuralNet.create(modelStruct, nLayers, learningRate, momentum, epochs);
     int const nInputs = 4;

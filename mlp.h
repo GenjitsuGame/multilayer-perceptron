@@ -12,7 +12,7 @@ struct neuron {
 
     ~neuron();
 
-    void create(int t_nInputs);
+    void create(int t_nInputs, bool t_isOutputLayerNeuron);
 
     float compute(float *t_niputs);
 };

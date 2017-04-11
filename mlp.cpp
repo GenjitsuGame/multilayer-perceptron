@@ -11,10 +11,10 @@ neuron::~neuron() {
     delete[] m_weights;
 }
 
-void neuron::create(int t_nInputs) {
+void neuron::create(int t_nInputs, bool t_isOutputLayerNeuron) {
     assert(t_nInputs);
     srand((unsigned int) time(0));
-    m_nInputs = t_nInputs + 1;
+    m_nInputs = t_nInputs + t_isOutputLayerNeuron ? 0 : 1;
     m_weights = new float[m_nInputs];
     m_delta = 0.0f;
     for (int i = 0; i < t_nInputs; ++i) {
@@ -50,7 +50,7 @@ void layer::create(int t_nNeurons, int t_nInputs, bool t_isOutputLayer) {
     m_errors = new float[t_nNeurons];
     for (int i = 0; i < m_nNeurons; ++i) {
         m_neurons[i] = new neuron();
-        m_neurons[i]->create(m_nInputs);
+        m_neurons[i]->create(m_nInputs, m_isOutputLayer);
     }
 }
 
